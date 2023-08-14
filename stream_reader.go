@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"sync"
 
-	utils "github.com/sashabaranov/go-openai/internal"
+	utils "github.com/gtkit/zhipuAi/internal"
 )
 
 var (
