@@ -12,7 +12,6 @@ const (
 	ChatMessageRoleAssistant = "assistant"
 )
 
-// const chatCompletionsSuffix = "/chat/completions"
 const chatCompletionsSuffix = "/sse-invoke"
 
 type ChatCompletionMessage struct {
@@ -24,7 +23,7 @@ type ChatCompletionPrompt struct {
 	Content string `json:"content"`
 }
 
-// ChatCompletionRequest represents a request structure for chat completion API. 请求模型参数
+// ChatCompletionRequest  请求模型参数.
 type ChatCompletionRequest struct {
 	Model    string                  `json:"model"`    // 模型
 	Messages []ChatCompletionMessage `json:"messages"` // prompt
@@ -36,7 +35,7 @@ type ChatCompletionRequest struct {
 	Incremental bool `json:"incremental"`
 }
 
-// GlmChatCompletionResponse Api文本返回
+// GlmChatCompletionResponse Api文本返回.
 type GlmChatCompletionResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
@@ -56,7 +55,10 @@ type GlmChatCompletionResponse struct {
 }
 
 // CreateChatCompletion — API call to Create a completion for the chat message.
-func (c *Client) CreateChatCompletion(ctx context.Context, request ChatCompletionRequest) (response GlmChatCompletionResponse, err error) {
+func (c *Client) CreateChatCompletion(
+	ctx context.Context,
+	request ChatCompletionRequest,
+) (response GlmChatCompletionResponse, err error) {
 	urlSuffix := chatCompletionsSuffix
 
 	req, err := c.newRequest(ctx, http.MethodPost, c.fullURL(urlSuffix, request.Model), withBody(request))

@@ -24,8 +24,7 @@ type streamable interface {
 }
 
 type streamReader[T streamable] struct {
-	emptyMessagesLimit uint
-	isFinished         bool
+	isFinished bool
 
 	reader         *bufio.Reader
 	response       *http.Response
@@ -41,7 +40,6 @@ type Event struct {
 
 var pool = sync.Pool{
 	New: func() interface{} {
-		fmt.Println("********* get event pool *********")
 		return &Event{}
 	},
 }
@@ -62,7 +60,10 @@ func (stream *streamReader[T]) processLines() (T, error) {
 		response       T
 	)
 
-	event := pool.Get().(*Event)
+	event, ok := pool.Get().(*Event)
+	if !ok {
+		return *new(T), nil
+	}
 
 	for {
 		rawLine, readErr := stream.reader.ReadBytes('\n')
@@ -82,20 +83,20 @@ func (stream *streamReader[T]) processLines() (T, error) {
 		}
 
 		e, _ := processEvent(noSpaceLine)
-		if e != nil {
-			if e.Event != nil {
-				if bytes.Compare(e.Event, []byte("finish")) == 0 {
-					stream.isFinished = true
-				}
-				event.Event = e.Event
-			}
-			if e.ID != nil {
-				event.ID = e.ID
-			}
-			if e.Data != nil {
-				event.Data = append(event.Data[:], e.Data...)
-			}
-		}
+		// if e != nil {
+		// 	if e.Event != nil {
+		// 		if bytes.Equal(e.Event, []byte("finish")) {
+		// 			stream.isFinished = true
+		// 		}
+		// 		event.Event = e.Event
+		// 	}
+		// 	if e.ID != nil {
+		// 		event.ID = e.ID
+		// 	}
+		// 	if e.Data != nil {
+		// 		event.Data = e.Data
+		// 	}
+		// }
 		if e == nil {
 			response = T{
 				ID:    string(event.ID),
@@ -111,11 +112,22 @@ func (stream *streamReader[T]) processLines() (T, error) {
 			}
 
 			putEvent(event)
-			fmt.Printf("----response: %+v\n", response)
 
 			return response, nil
 		}
 
+		if e.Event != nil {
+			if bytes.Equal(e.Event, []byte("finish")) {
+				stream.isFinished = true
+			}
+			event.Event = e.Event
+		}
+		if e.ID != nil {
+			event.ID = e.ID
+		}
+		if e.Data != nil {
+			event.Data = e.Data
+		}
 	}
 }
 
@@ -124,7 +136,6 @@ func putEvent(e *Event) {
 	e.Event = nil
 	e.Data = nil
 	pool.Put(e)
-	fmt.Println("========== put event pool ===========")
 }
 
 func (stream *streamReader[T]) unmarshalError() (errResp *ErrorResponse) {
@@ -160,8 +171,9 @@ func processEvent(msg []byte) (event *Event, err error) {
 			e.ID = append([]byte(nil), trimHeader(len(headerID), line)...)
 		case bytes.HasPrefix(line, headerData):
 			// The spec allows for multiple data fields per event, concatenated them with "\n".
-			e.Data = append(e.Data[:], append(trimHeader(len(headerData), line), byte('\n'))...)
-		// The spec says that a line that simply contains the string "data" should be treated as a data field with an empty body.
+			e.Data = append(e.Data, append(trimHeader(len(headerData), line), byte('\n'))...)
+		// The spec says that a line that simply contains the string "data" should be treated
+		// as a data field with an empty body.
 		case bytes.Equal(line, bytes.TrimSuffix(headerData, []byte(":"))):
 			e.Data = append(e.Data, byte('\n'))
 		case bytes.HasPrefix(line, headerEvent):

@@ -41,14 +41,7 @@ func withBody(body any) requestOption {
 	}
 }
 
-func withContentType(contentType string) requestOption {
-	return func(args *requestOptions) {
-		args.header.Set("Content-Type", contentType)
-	}
-}
-
 func (c *Client) newRequest(ctx context.Context, method, url string, setters ...requestOption) (*http.Request, error) {
-
 	args := &requestOptions{
 		body:   nil,
 		header: make(http.Header),
@@ -110,8 +103,7 @@ func sendRequestStream[T streamable](client *Client, req *http.Request) (*stream
 }
 
 func (c *Client) setCommonHeaders(req *http.Request) {
-
-	req.Header.Set("Authorization", fmt.Sprintf("%s", c.config.authToken))
+	req.Header.Set("Authorization", c.config.authToken)
 }
 
 func isFailureStatusCode(resp *http.Response) bool {
@@ -139,7 +131,7 @@ func decodeString(body io.Reader, output *string) error {
 }
 
 // fullURL returns full URL for request.
-// args[0] is model name
+// args[0] is model name.
 func (c *Client) fullURL(suffix string, args ...any) string {
 	deploymentName := ""
 	if len(args) > 0 {

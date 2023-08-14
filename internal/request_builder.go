@@ -21,7 +21,12 @@ func NewRequestBuilder() *HTTPRequestBuilder {
 	}
 }
 
-func (b *HTTPRequestBuilder) Build(ctx context.Context, method string, url string, body any, header http.Header) (req *http.Request, err error) {
+func (b *HTTPRequestBuilder) Build(
+	ctx context.Context, method string,
+	url string,
+	body any,
+	header http.Header,
+) (req *http.Request, err error) {
 	var bodyReader io.Reader
 	if body != nil {
 		if v, ok := body.(io.Reader); ok {

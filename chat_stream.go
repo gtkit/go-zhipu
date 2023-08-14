@@ -2,7 +2,6 @@ package openai
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 )
 
@@ -26,10 +25,11 @@ type GlmChatCompletionStream struct {
 	*streamReader[GlmChatCompletionStreamResponseResponse]
 }
 
-func (c *Client) CreateChatCompletionStream(ctx context.Context, request ChatCompletionRequest) (stream *GlmChatCompletionStream, err error) {
+func (c *Client) CreateChatCompletionStream(
+	ctx context.Context,
+	request ChatCompletionRequest,
+) (stream *GlmChatCompletionStream, err error) {
 	urlSuffix := chatCompletionsSuffix
-
-	fmt.Println("---c.fullURL(urlSuffix, request.Model)--", c.fullURL(urlSuffix, request.Model))
 
 	req, err := c.newRequest(ctx, http.MethodPost, c.fullURL(urlSuffix, request.Model), withBody(request))
 	if err != nil {
