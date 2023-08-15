@@ -25,14 +25,43 @@ type ChatCompletionPrompt struct {
 
 // ChatCompletionRequest  请求模型参数.
 type ChatCompletionRequest struct {
-	Model    string                  `json:"model"`    // 模型
-	Messages []ChatCompletionMessage `json:"messages"` // prompt
-	Prompt   []ChatCompletionPrompt  `json:"prompt"`
-	// MaxTokens        int                     `json:"max_tokens,omitempty"`
-	Temperature float32 `json:"temperature,omitempty"`
-	TopP        float32 `json:"top_p,omitempty"`
+	Model       string                  `json:"model"`  // 模型
+	Messages    []ChatCompletionMessage `json:"prompt"` // prompt
+	Temperature float32                 `json:"temperature,omitempty"`
+	TopP        float32                 `json:"top_p,omitempty"`
 	// 智谱 SSE接口调用时，用于控制每次返回内容方式是增量还是全量，不提供此参数时默认为增量返回 - true 为增量返回 - false 为全量返回
 	Incremental bool `json:"incremental"`
+}
+type FinishReason string
+
+const (
+	FinishReasonStop          FinishReason = "stop"
+	FinishReasonLength        FinishReason = "length"
+	FinishReasonFunctionCall  FinishReason = "function_call"
+	FinishReasonContentFilter FinishReason = "content_filter"
+	FinishReasonNull          FinishReason = "null"
+)
+
+type ChatCompletionChoice struct {
+	Index   int                   `json:"index"`
+	Message ChatCompletionMessage `json:"message"`
+	// FinishReason
+	// stop: API returned complete message,
+	// or a message terminated by one of the stop sequences provided via the stop parameter
+	// length: Incomplete model output due to max_tokens parameter or token limit
+	// function_call: The model decided to call a function
+	// content_filter: Omitted content due to a flag from our content filters
+	// null: API response still in progress or incomplete
+	FinishReason FinishReason `json:"finish_reason"`
+}
+
+type ChatCompletionResponse struct {
+	ID      string                 `json:"id"`
+	Object  string                 `json:"object"`
+	Created int64                  `json:"created"`
+	Model   string                 `json:"model"`
+	Choices []ChatCompletionChoice `json:"choices"`
+	Usage   Usage                  `json:"usage"`
 }
 
 // GlmChatCompletionResponse Api文本返回.

@@ -18,7 +18,16 @@ type GlmChatCompletionStreamResponseResponse struct {
 	Event   string                       `json:"event"`
 	Data    string                       `json:"data"`
 	Choices []ChatCompletionStreamChoice `json:"choices"`
-	Meta    Usage                        `json:"meta"`
+	Meta    GlmMeta                      `json:"meta"`
+}
+
+type GlmMeta struct {
+	TaskStatus string `json:"task_status"`
+	Usage      struct {
+		TotalTokens int `json:"total_tokens"`
+	} `json:"usage"`
+	TaskID    string `json:"task_id"`
+	RequestID string `json:"request_id"`
 }
 
 type GlmChatCompletionStream struct {

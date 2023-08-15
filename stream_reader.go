@@ -3,9 +3,11 @@ package openai
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"sync"
 
@@ -17,6 +19,7 @@ var (
 	headerID    = []byte("id:")
 	headerData  = []byte("data:")
 	headerEvent = []byte("event:")
+	headerMeta  = []byte("meta:")
 )
 
 type streamable interface {
@@ -36,6 +39,7 @@ type Event struct {
 	ID    []byte
 	Data  []byte
 	Event []byte
+	Meta  []byte
 }
 
 var pool = sync.Pool{
@@ -83,22 +87,17 @@ func (stream *streamReader[T]) processLines() (T, error) {
 		}
 
 		e, _ := processEvent(noSpaceLine)
-		// if e != nil {
-		// 	if e.Event != nil {
-		// 		if bytes.Equal(e.Event, []byte("finish")) {
-		// 			stream.isFinished = true
-		// 		}
-		// 		event.Event = e.Event
-		// 	}
-		// 	if e.ID != nil {
-		// 		event.ID = e.ID
-		// 	}
-		// 	if e.Data != nil {
-		// 		event.Data = e.Data
-		// 	}
-		// }
+
 		if e == nil {
-			response = T{
+			meta := &GlmMeta{}
+			if len(event.Meta) > 0 {
+				err := json.Unmarshal(event.Meta, meta)
+				if err != nil {
+					log.Println("---Meta Unmarshal error:", err)
+				}
+			}
+
+			response = T(GlmChatCompletionStreamResponseResponse{
 				ID:    string(event.ID),
 				Event: string(event.Event),
 				Data:  string(event.Data),
@@ -109,8 +108,8 @@ func (stream *streamReader[T]) processLines() (T, error) {
 						},
 					},
 				},
-			}
-
+				Meta: *meta,
+			})
 			putEvent(event)
 
 			return response, nil
@@ -127,6 +126,9 @@ func (stream *streamReader[T]) processLines() (T, error) {
 		}
 		if e.Data != nil {
 			event.Data = e.Data
+		}
+		if e.Meta != nil {
+			event.Meta = e.Meta
 		}
 	}
 }
@@ -166,6 +168,7 @@ func processEvent(msg []byte) (event *Event, err error) {
 	// Normalize the crlf to lf to make it easier to split the lines.
 	// Split the line by "\n" or "\r", per the spec.
 	for _, line := range bytes.FieldsFunc(msg, func(r rune) bool { return r == '\n' || r == '\r' }) {
+		// fmt.Println("line:", string(line))
 		switch {
 		case bytes.HasPrefix(line, headerID):
 			e.ID = append([]byte(nil), trimHeader(len(headerID), line)...)
@@ -178,8 +181,9 @@ func processEvent(msg []byte) (event *Event, err error) {
 			e.Data = append(e.Data, byte('\n'))
 		case bytes.HasPrefix(line, headerEvent):
 			e.Event = append([]byte(nil), trimHeader(len(headerEvent), line)...)
-		// case bytes.HasPrefix(line, headerRetry):
-		// 	e.Retry = append([]byte(nil), trimHeader(len(headerRetry), line)...)
+		case bytes.HasPrefix(line, headerMeta):
+			e.Meta = append([]byte(nil), trimHeader(len(headerMeta), line)...)
+			// fmt.Println("-----meta:", string(e.Meta))
 		default:
 			// Ignore any garbage that doesn't match what we're looking for.
 		}
