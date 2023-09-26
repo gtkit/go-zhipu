@@ -3,6 +3,7 @@ package zhipu
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -76,6 +77,9 @@ func (stream *streamReader[T]) processLines() (T, error) {
 			respErr := stream.unmarshalError()
 			if respErr != nil {
 				return *new(T), fmt.Errorf("error, %w", respErr.Error)
+			}
+			if errors.Is(readErr, context.Canceled) {
+				return *new(T), readErr
 			}
 			return *new(T), fmt.Errorf("stream read error, %w", readErr)
 		}
