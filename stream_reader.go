@@ -11,13 +11,11 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/gtkit/goerr"
-
-	"ydsd_chat/internal/pkg/zhipu/utils"
+	"github.com/gtkit/go-zhipu/utils"
 )
 
 var (
-	errorPrefix = []byte(`data: {"error":`)
+	// errorPrefix = []byte(`data: {"error":`).
 	headerID    = []byte("id:")
 	headerData  = []byte("data:")
 	headerEvent = []byte("event:")
@@ -73,21 +71,19 @@ func (stream *streamReader[T]) processLines() (T, error) {
 
 	for {
 		rawLine, readErr := stream.reader.ReadBytes('\n')
-		// fmt.Printf("rawLine:%#v\n", string(rawLine))
 
 		if readErr != nil || hasErrorPrefix {
 			respErr := stream.unmarshalError()
 			if respErr != nil {
 				return *new(T), fmt.Errorf("error, %w", respErr.Error)
 			}
-			return *new(T), goerr.WithMessage(readErr, "stream read error")
+			return *new(T), fmt.Errorf("stream read error, %w", readErr)
 		}
 
 		if bytes.Equal(rawLine, []byte("\n")) {
 			meta := &GlmMeta{}
 			if len(event.Meta) > 0 {
-				err := json.Unmarshal(event.Meta, meta)
-				if err != nil {
+				if err := json.Unmarshal(event.Meta, meta); err != nil {
 					log.Println("---Meta Unmarshal error:", err)
 				}
 			}
@@ -123,8 +119,6 @@ func (stream *streamReader[T]) processLines() (T, error) {
 		}
 		if e.Data != nil {
 			event.Data = append(event.Data, e.Data...)
-			// fmt.Printf("--edata:%#v\n", string(e.Data))
-			// fmt.Printf("eventdata:%#v\n", string(event.Data))
 		}
 		if e.Meta != nil {
 			event.Meta = e.Meta
@@ -168,13 +162,10 @@ func processEvent(msg []byte) (event *Event, err error) {
 	case bytes.HasPrefix(msg, headerID):
 		e.ID = append([]byte(nil), trimHeader(len(headerID), msg)...)
 	case bytes.HasPrefix(msg, headerData):
-		// fmt.Printf("---line:%#v\n", string(msg))
 		e.Data = append(e.Data, trimHeader(len(headerData), msg)...)
-
 		if bytes.Equal(msg, []byte("data:   \n")) {
 			e.Data = append(e.Data, byte('\n'))
 		}
-
 	// The spec says that a line that simply contains the string "data" should be treated
 	// as a data field with an empty body.
 	case bytes.Equal(msg, bytes.TrimSuffix(headerData, []byte(":"))):

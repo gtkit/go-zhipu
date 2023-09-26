@@ -43,7 +43,6 @@ func (e *APIError) UnmarshalJSON(data []byte) (err error) {
 
 	err = json.Unmarshal(rawMap["message"], &e.Message)
 	if err != nil {
-
 		var messages []string
 		err = json.Unmarshal(rawMap["message"], &messages)
 		if err != nil {
@@ -75,8 +74,7 @@ func (e *APIError) UnmarshalJSON(data []byte) (err error) {
 	// if the api returned a number, we need to force an integer
 	// since the json package defaults to float64
 	var intCode int
-	err = json.Unmarshal(rawMap["code"], &intCode)
-	if err == nil {
+	if err = json.Unmarshal(rawMap["code"], &intCode); err == nil {
 		e.Code = intCode
 		return nil
 	}

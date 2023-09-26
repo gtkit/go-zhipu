@@ -21,3 +21,7 @@ lint: ## Lint Go code with the installed golangci-lint
 	@ echo "▶️ golangci-lint run"
 	golangci-lint run $(LINT_TARGETS)
 	@ echo "✅ golangci-lint run"
+
+
+check-secure:
+	govulncheck ./...

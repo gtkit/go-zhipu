@@ -10,33 +10,34 @@ import (
 	"testing"
 	"time"
 
-	zpai "github.com/gtkit/zhipuAi"
+	"github.com/gtkit/go-zhipu"
 )
 
 func TestZpChat(t *testing.T) {
-	key := "797e0338809fdac6080dcdc72da95dbc.8H3t2c43RI4bhjPO"
+	key := "ifsoifdadga.aegddg"
 
-	token, err := zpai.GetAPIToken(key, time.Hour*24)
+	token, err := zhipu.GenerateToken(key, time.Hour*24)
 
 	if err != nil {
 		t.Log("---GenerateToken err:", err)
+		return
 	}
 
-	prompt := []zpai.ChatCompletionMessage{
-		{Role: zpai.ChatMessageRoleUser, Content: "1=1等于多少"},
+	prompt := []zhipu.ChatCompletionMessage{
+		{Role: zhipu.ChatMessageRoleUser, Content: "1+1等于多少"},
 	}
 
-	openConfig := zpai.DefaultConfig(token)
+	openConfig := zhipu.DefaultConfig(token)
 
 	openConfig.HTTPClient = &http.Client{
 		Timeout: 180 * time.Second,
 	}
 
 	// 实例化一个客户端
-	c := zpai.NewClientWithConfig(openConfig)
+	c := zhipu.NewClientWithConfig(openConfig)
 
-	req := zpai.ChatCompletionRequest{
-		Model:       zpai.GLMPro,
+	req := zhipu.ChatCompletionRequest{
+		Model:       zhipu.GLMPro,
 		Messages:    prompt,
 		Temperature: 0.7,
 		Incremental: true,
@@ -54,7 +55,7 @@ func TestZpChat(t *testing.T) {
 
 	for {
 		response, reserr := stream.Recv()
-
+		// t.Logf("****response: %+v\n", response)
 		if errors.Is(reserr, io.EOF) {
 			t.Log("\nStream finished")
 			return
@@ -69,6 +70,6 @@ func TestZpChat(t *testing.T) {
 		for _, choice := range response.Choices {
 			s += choice.Delta.Content
 		}
-		// t.Log("---- response.Choices Content: ", s)
+		t.Log("---- response.Choices Content: ", s)
 	}
 }

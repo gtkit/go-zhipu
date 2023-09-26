@@ -1,5 +1,5 @@
-module github.com/gtkit/zhipuAi
+module github.com/gtkit/go-zhipu
 
-go 1.18
+go 1.20
 
-require github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+require github.com/golang-jwt/jwt v3.2.2+incompatible

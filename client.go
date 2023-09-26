@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"ydsd_chat/internal/pkg/zhipu/utils"
+	"github.com/gtkit/go-zhipu/utils"
 )
 
 type Client struct {

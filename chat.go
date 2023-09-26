@@ -21,24 +21,17 @@ type ChatCompletionMessage struct {
 	Content string `json:"content"`
 }
 
-// type ChatCompletionPrompt struct {
-// 	Role    string `json:"role"`
-// 	Content string `json:"content"`
-// }
-
 // ChatCompletionRequest  请求模型参数.
 type ChatCompletionRequest struct {
-	Model    string                  `json:"model"`  // 模型
-	Messages []ChatCompletionMessage `json:"prompt"` // prompt
-	// Prompt   []ChatCompletionPrompt  `json:"prompt"`
-	// MaxTokens        int                     `json:"max_tokens,omitempty"`
-	Temperature float32 `json:"temperature,omitempty"`
-	TopP        float32 `json:"top_p,omitempty"`
+	Model       string                  `json:"model"`  // 模型
+	Messages    []ChatCompletionMessage `json:"prompt"` // prompt
+	Temperature float32                 `json:"temperature,omitempty"`
+	TopP        float32                 `json:"top_p,omitempty"`
 	// 智谱 SSE接口调用时，用于控制每次返回内容方式是增量还是全量，不提供此参数时默认为增量返回 - true 为增量返回 - false 为全量返回
 	Incremental bool `json:"incremental"`
 }
 
-// ChatCompletionResponse Api文本返回.
+// ChatglmCompletionResponse Api文本返回.
 type ChatglmCompletionResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
@@ -55,7 +48,6 @@ type ChatglmCompletionResponse struct {
 }
 
 type ChatCompletionChoice struct {
-	// Index   int                   `json:"index"`
 	Message ChatCompletionMessage `json:"message"`
 }
 
@@ -82,12 +74,11 @@ func (c *Client) CreateChatCompletion(
 	}
 	var glm ChatglmCompletionResponse
 
-	err = c.sendRequest(req, &glm)
-	if err != nil {
+	if err = c.sendRequest(req, &glm); err != nil {
 		return
 	}
 
-	response = ChatCompletionResponse{
+	return ChatCompletionResponse{
 		ID:      glm.Data.TaskID,
 		Object:  glm.Msg,
 		Created: time.Now().Unix(),
@@ -100,6 +91,5 @@ func (c *Client) CreateChatCompletion(
 		Usage: Usage{
 			TotalTokens: glm.Data.Usage.TotalTokens,
 		},
-	}
-	return
+	}, nil
 }

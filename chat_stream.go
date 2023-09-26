@@ -39,7 +39,6 @@ func (c *Client) CreateChatCompletionStream(
 ) (stream *GlmChatCompletionStream, err error) {
 	urlSuffix := chatStreamCompletionsSuffix
 
-	// fmt.Println("----full url: ", c.fullURL(urlSuffix, request.Model))
 	req, err := c.newRequest(ctx, http.MethodPost, c.fullURL(urlSuffix, request.Model), withBody(request))
 	if err != nil {
 		return nil, err
@@ -49,8 +48,7 @@ func (c *Client) CreateChatCompletionStream(
 	if err != nil {
 		return
 	}
-	stream = &GlmChatCompletionStream{
+	return &GlmChatCompletionStream{
 		streamReader: resp,
-	}
-	return
+	}, nil
 }
