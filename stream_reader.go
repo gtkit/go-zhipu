@@ -1,4 +1,4 @@
-package openai
+package zhipu
 
 import (
 	"bufio"
@@ -11,7 +11,9 @@ import (
 	"net/http"
 	"sync"
 
-	utils "github.com/gtkit/zhipuAi/internal"
+	"github.com/gtkit/goerr"
+
+	"ydsd_chat/internal/pkg/zhipu/utils"
 )
 
 var (
@@ -71,24 +73,17 @@ func (stream *streamReader[T]) processLines() (T, error) {
 
 	for {
 		rawLine, readErr := stream.reader.ReadBytes('\n')
+		// fmt.Printf("rawLine:%#v\n", string(rawLine))
 
 		if readErr != nil || hasErrorPrefix {
 			respErr := stream.unmarshalError()
 			if respErr != nil {
 				return *new(T), fmt.Errorf("error, %w", respErr.Error)
 			}
-			return *new(T), readErr
+			return *new(T), goerr.WithMessage(readErr, "stream read error")
 		}
 
-		noSpaceLine := bytes.TrimSpace(rawLine)
-
-		if bytes.HasPrefix(noSpaceLine, errorPrefix) {
-			hasErrorPrefix = true
-		}
-
-		e, _ := processEvent(noSpaceLine)
-
-		if e == nil {
+		if bytes.Equal(rawLine, []byte("\n")) {
 			meta := &GlmMeta{}
 			if len(event.Meta) > 0 {
 				err := json.Unmarshal(event.Meta, meta)
@@ -97,10 +92,9 @@ func (stream *streamReader[T]) processLines() (T, error) {
 				}
 			}
 
-			response = T(GlmChatCompletionStreamResponseResponse{
+			response = T{
 				ID:    string(event.ID),
 				Event: string(event.Event),
-				Data:  string(event.Data),
 				Choices: []ChatCompletionStreamChoice{
 					{
 						Delta: ChatCompletionStreamChoiceDelta{
@@ -109,11 +103,14 @@ func (stream *streamReader[T]) processLines() (T, error) {
 					},
 				},
 				Meta: *meta,
-			})
+			}
+
 			putEvent(event)
 
 			return response, nil
 		}
+
+		e, _ := processEvent(rawLine)
 
 		if e.Event != nil {
 			if bytes.Equal(e.Event, []byte("finish")) {
@@ -125,7 +122,9 @@ func (stream *streamReader[T]) processLines() (T, error) {
 			event.ID = e.ID
 		}
 		if e.Data != nil {
-			event.Data = e.Data
+			event.Data = append(event.Data, e.Data...)
+			// fmt.Printf("--edata:%#v\n", string(e.Data))
+			// fmt.Printf("eventdata:%#v\n", string(event.Data))
 		}
 		if e.Meta != nil {
 			event.Meta = e.Meta
@@ -165,48 +164,45 @@ func processEvent(msg []byte) (event *Event, err error) {
 		return nil, errors.New("event message was empty")
 	}
 
-	// Normalize the crlf to lf to make it easier to split the lines.
-	// Split the line by "\n" or "\r", per the spec.
-	for _, line := range bytes.FieldsFunc(msg, func(r rune) bool { return r == '\n' || r == '\r' }) {
-		// fmt.Println("line:", string(line))
-		switch {
-		case bytes.HasPrefix(line, headerID):
-			e.ID = append([]byte(nil), trimHeader(len(headerID), line)...)
-		case bytes.HasPrefix(line, headerData):
-			// The spec allows for multiple data fields per event, concatenated them with "\n".
-			e.Data = append(e.Data, append(trimHeader(len(headerData), line), byte('\n'))...)
-		// The spec says that a line that simply contains the string "data" should be treated
-		// as a data field with an empty body.
-		case bytes.Equal(line, bytes.TrimSuffix(headerData, []byte(":"))):
+	switch {
+	case bytes.HasPrefix(msg, headerID):
+		e.ID = append([]byte(nil), trimHeader(len(headerID), msg)...)
+	case bytes.HasPrefix(msg, headerData):
+		// fmt.Printf("---line:%#v\n", string(msg))
+		e.Data = append(e.Data, trimHeader(len(headerData), msg)...)
+
+		if bytes.Equal(msg, []byte("data:   \n")) {
 			e.Data = append(e.Data, byte('\n'))
-		case bytes.HasPrefix(line, headerEvent):
-			e.Event = append([]byte(nil), trimHeader(len(headerEvent), line)...)
-		case bytes.HasPrefix(line, headerMeta):
-			e.Meta = append([]byte(nil), trimHeader(len(headerMeta), line)...)
-			// fmt.Println("-----meta:", string(e.Meta))
-		default:
-			// Ignore any garbage that doesn't match what we're looking for.
 		}
+
+	// The spec says that a line that simply contains the string "data" should be treated
+	// as a data field with an empty body.
+	case bytes.Equal(msg, bytes.TrimSuffix(headerData, []byte(":"))):
+		e.Data = append(e.Data, byte('\n'))
+	case bytes.HasPrefix(msg, headerEvent):
+		e.Event = append([]byte(nil), trimHeader(len(headerEvent), msg)...)
+	case bytes.HasPrefix(msg, headerMeta):
+		e.Meta = append([]byte(nil), trimHeader(len(headerMeta), msg)...)
+	default:
+		// Ignore any garbage that doesn't match what we're looking for.
 	}
 
 	// Trim the last "\n" per the spec.
-	e.Data = bytes.TrimSuffix(e.Data, []byte("\n"))
+	if len(e.Data) > 1 {
+		e.Data = bytes.TrimSuffix(e.Data, []byte("\n"))
+	}
 
 	return &e, err
 }
+
 func trimHeader(size int, data []byte) []byte {
 	if data == nil || len(data) < size {
 		return data
 	}
-
 	data = data[size:]
 	// Remove optional leading whitespace
 	if len(data) > 0 && data[0] == 32 {
 		data = data[1:]
-	}
-	// Remove trailing new line
-	if len(data) > 0 && data[len(data)-1] == 10 {
-		data = data[:len(data)-1]
 	}
 	return data
 }

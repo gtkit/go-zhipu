@@ -1,4 +1,4 @@
-package openai
+package zhipu
 
 import (
 	"bufio"
@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	utils "github.com/gtkit/zhipuAi/internal"
+	"ydsd_chat/internal/pkg/zhipu/utils"
 )
 
 type Client struct {

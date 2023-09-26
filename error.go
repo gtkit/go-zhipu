@@ -1,4 +1,4 @@
-package openai
+package zhipu
 
 import (
 	"encoding/json"
@@ -43,6 +43,7 @@ func (e *APIError) UnmarshalJSON(data []byte) (err error) {
 
 	err = json.Unmarshal(rawMap["message"], &e.Message)
 	if err != nil {
+
 		var messages []string
 		err = json.Unmarshal(rawMap["message"], &messages)
 		if err != nil {

@@ -1,4 +1,4 @@
-package openai
+package zhipu
 
 import (
 	"net/http"
