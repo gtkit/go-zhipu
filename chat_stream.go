@@ -14,7 +14,7 @@ type ChatCompletionStreamChoice struct {
 	Delta ChatCompletionStreamChoiceDelta `json:"delta"`
 }
 
-type GlmChatCompletionStreamResponseResponse struct {
+type GlmChatCompletionStreamResponse struct {
 	ID      string                       `json:"id"`
 	Event   string                       `json:"event"`
 	Choices []ChatCompletionStreamChoice `json:"choices"`
@@ -22,7 +22,7 @@ type GlmChatCompletionStreamResponseResponse struct {
 }
 
 type GlmChatCompletionStream struct {
-	*streamReader[GlmChatCompletionStreamResponseResponse]
+	*streamReader[GlmChatCompletionStreamResponse]
 }
 type GlmMeta struct {
 	TaskStatus string `json:"task_status"`
@@ -36,7 +36,7 @@ type GlmMeta struct {
 func (c *Client) CreateChatCompletionStream(
 	ctx context.Context,
 	request ChatCompletionRequest,
-) (stream *GlmChatCompletionStream, err error) {
+) (*GlmChatCompletionStream, error) {
 	urlSuffix := chatStreamCompletionsSuffix
 
 	req, err := c.newRequest(ctx, http.MethodPost, c.fullURL(urlSuffix, request.Model), withBody(request))
@@ -44,9 +44,9 @@ func (c *Client) CreateChatCompletionStream(
 		return nil, err
 	}
 
-	resp, err := sendRequestStream[GlmChatCompletionStreamResponseResponse](c, req)
+	resp, err := sendRequestStream[GlmChatCompletionStreamResponse](c, req)
 	if err != nil {
-		return
+		return nil, err
 	}
 	return &GlmChatCompletionStream{
 		streamReader: resp,

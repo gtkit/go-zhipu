@@ -14,7 +14,7 @@ import (
 )
 
 func TestZpChat(t *testing.T) {
-	key := "ifsoifdadga.aegddg"
+	key := "111222333.55566633" // 示例:密钥格式
 
 	token, err := zhipu.GenerateToken(key, time.Hour*24)
 
@@ -24,7 +24,7 @@ func TestZpChat(t *testing.T) {
 	}
 
 	prompt := []zhipu.ChatCompletionMessage{
-		{Role: zhipu.ChatMessageRoleUser, Content: "1+1等于多少"},
+		{Role: zhipu.ChatMessageRoleUser, Content: "你用的什么模型"},
 	}
 
 	openConfig := zhipu.DefaultConfig(token)
@@ -37,7 +37,7 @@ func TestZpChat(t *testing.T) {
 	c := zhipu.NewClientWithConfig(openConfig)
 
 	req := zhipu.ChatCompletionRequest{
-		Model:       zhipu.GLMPro,
+		Model:       zhipu.Turbo,
 		Messages:    prompt,
 		Temperature: 0.7,
 		Incremental: true,

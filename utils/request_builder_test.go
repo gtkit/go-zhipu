@@ -35,7 +35,7 @@ func TestRequestBuilderReturnsRequest(t *testing.T) {
 		method      = http.MethodPost
 		url         = "/foo"
 		request     = map[string]string{"foo": "bar"}
-		reqBytes, _ = b.marshaller.Marshal(request)
+		reqBytes, _ = b.Marshal().Marshal(request)
 		want, _     = http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(reqBytes))
 	)
 	got, _ := b.Build(ctx, method, url, request, nil)

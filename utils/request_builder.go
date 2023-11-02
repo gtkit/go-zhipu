@@ -9,18 +9,24 @@ import (
 
 type RequestBuilder interface {
 	Build(ctx context.Context, method, url string, body any, header http.Header) (*http.Request, error)
+	Marshal() Marshaller
 }
 
 type HTTPRequestBuilder struct {
 	marshaller Marshaller
 }
 
-func NewRequestBuilder() *HTTPRequestBuilder {
+var _ RequestBuilder = (*HTTPRequestBuilder)(nil)
+
+func NewRequestBuilder() RequestBuilder {
 	return &HTTPRequestBuilder{
 		marshaller: &JSONMarshaller{},
 	}
 }
 
+func (b *HTTPRequestBuilder) Marshal() Marshaller {
+	return b.marshaller
+}
 func (b *HTTPRequestBuilder) Build(
 	ctx context.Context, method string,
 	url string,

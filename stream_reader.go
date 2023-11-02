@@ -23,8 +23,15 @@ var (
 	headerMeta  = []byte("meta:")
 )
 
+type StreamReaderInterface[T streamable] interface {
+	Recv() (response T, err error)
+	Close()
+	processLines() (T, error)
+	unmarshalError() (errResp *ErrorResponse)
+}
+
 type streamable interface {
-	GlmChatCompletionStreamResponseResponse
+	GlmChatCompletionStreamResponse
 }
 
 type streamReader[T streamable] struct {
@@ -35,6 +42,8 @@ type streamReader[T streamable] struct {
 	errAccumulator utils.ErrorAccumulator
 	unmarshaler    utils.Unmarshaler
 }
+
+var _ StreamReaderInterface[GlmChatCompletionStreamResponse] = (*streamReader[GlmChatCompletionStreamResponse])(nil)
 
 type Event struct {
 	ID    []byte

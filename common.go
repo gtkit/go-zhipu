@@ -7,8 +7,5 @@ type Usage struct {
 }
 
 const (
-	GLMPro  = "chatglm_pro"
-	GLMStd  = "chatglm_std"
-	GLMLite = "chatglm_lite"
-	GLM6B   = "chatglm_6b"
+	Turbo = "chatglm_turbo"
 )
